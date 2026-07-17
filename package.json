@@ -8,6 +8,9 @@
   "engines": { "node": ">=18" },
   "keywords": ["ai", "agent", "git", "hook", "pre-commit", "guardrail", "safety", "claude-code", "cursor", "aider", "codex"],
   "license": "MIT",
+  "repository": { "type": "git", "url": "git+https://github.com/calvinsyy/gitleash.git" },
+  "homepage": "https://github.com/calvinsyy/gitleash#readme",
+  "bugs": { "url": "https://github.com/calvinsyy/gitleash/issues" },
   "scripts": {
     "build": "tsup src/cli.ts --format esm --clean",
     "dev": "tsx src/cli.ts",
