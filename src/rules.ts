@@ -40,17 +40,25 @@ const SECRET_PATTERNS: { name: string; re: RegExp }[] = [
   },
 ];
 
+// An inline escape hatch on a line silences the secrets rule for that line.
+const ALLOW_MARKER = /gitleash-allow|allowlist secret/i;
+
 const isTest = (p: string) => TEST_PATTERNS.some((re) => re.test(p));
 const isCi = (p: string) => CI_PREFIXES.some((pre) => p.startsWith(pre)) || CI_FILES.has(p);
 const isGenerated = (p: string) => GENERATED.test(p);
 const addedLines = (patch: string) =>
-  patch.split("\n").filter((l) => l.startsWith("+") && !l.startsWith("+++"));
+  patch
+    .split("\n")
+    .filter((l) => l.startsWith("+") && !l.startsWith("+++"))
+    .filter((l) => !ALLOW_MARKER.test(l));
 
 // --- rules -----------------------------------------------------------------
 
 const bigDiff: Rule = {
   id: "big-diff",
-  run: ({ files, config }) => {
+  run: ({ files, config, isInitial }) => {
+    // The first commit bootstraps the repo and is legitimately large.
+    if (isInitial) return [];
     const out: Finding[] = [];
     // Auto-generated files (lockfiles, bundles) don't reflect agent intent, so
     // exclude them from the size the reviewer is actually asked to vet.

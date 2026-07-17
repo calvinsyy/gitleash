@@ -81,8 +81,17 @@ npm name `gitleash` confirmed available. MIT.
 - Expanded secret patterns (Slack, Google, Stripe, GitHub PAT variants).
 - `big-diff` excludes auto-generated files (lockfiles, bundles, `dist/`).
 
+## 0.2.0 — retention hardening (shipped)
+
+- `big-diff` never fires on the initial (bootstrap) commit (`isInitial` on the
+  DiffContext, derived from whether HEAD exists).
+- Secrets rule honors an inline allowlist marker (`gitleash-allow` /
+  `allowlist secret`) so a single false-positive line can be silenced without
+  disabling the whole rule.
+
 ## Fast-follows (still open)
 
 - Entropy-based secret detection to complement the pattern list.
 - Weakened-assertion detection (not just deleted test files).
 - `gitleash install` opt-out flags per hook.
+- Smarter big-diff (weight by file type; separate warn vs block thresholds).

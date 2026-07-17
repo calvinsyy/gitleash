@@ -121,6 +121,16 @@ GITLEASH_OK=1 git commit -m "..."   # gitleash allows it and notes the override
 git commit --no-verify -m "..."     # skips all git hooks entirely
 ```
 
+To silence a **secret false-positive on a single line**, mark it inline — the
+rest of the commit is still checked:
+
+```js
+const publishableKey = "pk_live_notreallyasecret"; // gitleash-allow
+```
+
+The `big-diff` rule never fires on a repo's **first commit** (bootstrapping a
+project is legitimately large).
+
 ## Origin story
 
 The very first time I pushed gitleash to GitHub, the push was **rejected** —

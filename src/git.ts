@@ -38,11 +38,15 @@ export async function getDiffContext(
   config: Config,
   diffArgs: string[] = ["--cached"],
 ): Promise<DiffContext> {
-  const [branch, numstat, nameStatus, patch] = await Promise.all([
+  const [branch, numstat, nameStatus, patch, isInitial] = await Promise.all([
     getBranch(root),
     git(root, ["diff", ...diffArgs, "--numstat"]),
     git(root, ["diff", ...diffArgs, "--name-status"]),
     git(root, ["diff", ...diffArgs]),
+    git(root, ["rev-parse", "--verify", "-q", "HEAD"]).then(
+      () => false,
+      () => true, // rev-parse fails when there is no commit yet
+    ),
   ]);
 
   const statusByPath = new Map<string, FileStatus>();
@@ -66,5 +70,5 @@ export async function getDiffContext(
     files.push({ path, status: statusByPath.get(path) ?? "M", additions: add, deletions: del });
   }
 
-  return { files, additions, deletions, branch, patch, config };
+  return { files, additions, deletions, branch, patch, isInitial, config };
 }

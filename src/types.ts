@@ -43,6 +43,8 @@ export type DiffContext = {
   branch: string;
   /** Full unified diff of the staged changes (for content scans). */
   patch: string;
+  /** True when this is the repo's first commit (no HEAD yet). */
+  isInitial: boolean;
   config: Config;
 };
 

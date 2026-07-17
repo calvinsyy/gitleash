@@ -1,6 +1,6 @@
 {
   "name": "gitleash",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Keep your AI coding agent on a leash: a zero-config git hook that blocks reckless commits and force-pushes — huge diffs, deleted tests, hardcoded secrets, CI edits — before they land.",
   "type": "module",
   "bin": { "gitleash": "dist/cli.js" },

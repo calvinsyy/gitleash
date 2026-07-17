@@ -14,6 +14,7 @@ function ctx(over: Partial<DiffContext> = {}): DiffContext {
     deletions,
     branch: over.branch ?? "feature/x",
     patch: over.patch ?? "",
+    isInitial: over.isInitial ?? false,
     config,
   };
 }
@@ -43,6 +44,11 @@ describe("big-diff rule", () => {
     const found = runRules(
       ctx({ files: [f("package-lock.json", "M", 5000, 2000), f("bundle.min.js", "M", 900, 0)] }),
     );
+    expect(found.some((x) => x.rule === "big-diff")).toBe(false);
+  });
+  it("never fires on the initial (bootstrap) commit", () => {
+    const files = Array.from({ length: 50 }, (_, i) => f(`f${i}.ts`, "A", 100, 0));
+    const found = runRules(ctx({ files, isInitial: true }));
     expect(found.some((x) => x.rule === "big-diff")).toBe(false);
   });
 });
@@ -105,6 +111,11 @@ describe("secrets rule", () => {
   it("does not flag removed lines or the diff header", () => {
     const patch = "--- a/x\n+++ b/x\n-const k = 'AKIAIOSFODNN7EXAMPLE';\n";
     const found = runRules(ctx({ files: [f("x", "M", 0, 1)], patch }));
+    expect(found.some((x) => x.rule === "secrets")).toBe(false);
+  });
+  it("respects an inline allowlist marker", () => {
+    const patch = "+const k = 'AKIAIOSFODNN7EXAMPLE'; // gitleash-allow\n";
+    const found = runRules(ctx({ files: [f("config.js", "M", 1, 0)], patch }));
     expect(found.some((x) => x.rule === "secrets")).toBe(false);
   });
 });
