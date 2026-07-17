@@ -72,10 +72,17 @@ silent.
 Node/TS ESM, single dependency (`execa`). `npm i -g gitleash` or devDep + npx.
 npm name `gitleash` confirmed available. MIT.
 
-## Fast-follows (post-MVP)
+## Post-MVP — shipped in this pass
 
-- `pre-push` hook variant (force-push / direct-push-to-main protection).
-- More secret patterns / entropy-based detection.
-- Per-rule severity overrides in config.
+- `pre-push` hook: blocks force-pushes and deletions of protected branches
+  (`prepush.ts`; rules `force-push`, `protected-branch-push`).
+- Per-rule severity overrides in config (`ruleSeverity`).
 - `--json` output for CI dashboards.
+- Expanded secret patterns (Slack, Google, Stripe, GitHub PAT variants).
+- `big-diff` excludes auto-generated files (lockfiles, bundles, `dist/`).
+
+## Fast-follows (still open)
+
+- Entropy-based secret detection to complement the pattern list.
 - Weakened-assertion detection (not just deleted test files).
+- `gitleash install` opt-out flags per hook.

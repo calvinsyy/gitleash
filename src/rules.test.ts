@@ -39,6 +39,12 @@ describe("big-diff rule", () => {
     const found = runRules(ctx({ files: [f("a.ts", "M", 5, 2)] }));
     expect(found.some((x) => x.rule === "big-diff")).toBe(false);
   });
+  it("does not count auto-generated files (lockfiles, min.js) toward the size", () => {
+    const found = runRules(
+      ctx({ files: [f("package-lock.json", "M", 5000, 2000), f("bundle.min.js", "M", 900, 0)] }),
+    );
+    expect(found.some((x) => x.rule === "big-diff")).toBe(false);
+  });
 });
 
 describe("protect-tests rule", () => {
@@ -74,6 +80,22 @@ describe("secrets rule", () => {
     const patch = "+++ b/config.js\n+const k = 'AKIAIOSFODNN7EXAMPLE';\n";
     const found = runRules(ctx({ files: [f("config.js", "M", 1, 0)], patch }));
     expect(found.some((x) => x.rule === "secrets" && x.severity === "block")).toBe(true);
+  });
+  it("blocks on Slack, Google, Stripe, and GitHub PATs", () => {
+    // Assemble the sample tokens at runtime by splitting the recognizable
+    // prefix, so the literal secret never appears in source — otherwise
+    // GitHub push-protection (correctly!) flags this test file itself.
+    const cases = [
+      "xox" + "b-123456789012-abcdefghijklmnopqrstuvwx",
+      "AIza" + "SyA1234567890abcdefghijklmnopqrstuv",
+      "sk_" + "live_1234567890abcdefghijklmnop",
+      "gh" + "p_1234567890abcdefghijklmnopqrstuvwxyz",
+    ];
+    for (const secret of cases) {
+      const patch = "+ const x = '" + secret + "'\n";
+      const found = runRules(ctx({ files: [f("c.js", "M", 1, 0)], patch }));
+      expect(found.some((x) => x.rule === "secrets")).toBe(true);
+    }
   });
   it("blocks on a private key header", () => {
     const patch = "+-----BEGIN OPENSSH PRIVATE KEY-----\n";
@@ -117,6 +139,12 @@ describe("config", () => {
     const config: Config = { ...DEFAULT_CONFIG, maxLines: 5000 };
     const found = runRules(ctx({ files: [f("a.ts", "M", 900, 0)], config }));
     expect(found.some((x) => x.rule === "big-diff")).toBe(false);
+  });
+  it("applies a rule-severity override (block -> warn)", () => {
+    const config: Config = { ...DEFAULT_CONFIG, ruleSeverity: { "protect-ci": "warn" } };
+    const found = runRules(ctx({ files: [f(".github/workflows/ci.yml", "M", 1, 0)], config }));
+    const ci = found.find((x) => x.rule === "protect-ci");
+    expect(ci?.severity).toBe("warn");
   });
 });
 

@@ -5,13 +5,16 @@ import { isAbsolute, join } from "node:path";
 
 const MARKER = "# gitleash-managed";
 
-const HOOK_BLOCK = `${MARKER}
+/** The managed shell block that invokes a gitleash subcommand from a hook. */
+function hookBlock(subcommand: string): string {
+  return `${MARKER}
 if command -v gitleash >/dev/null 2>&1; then
-  gitleash check || exit 1
+  gitleash ${subcommand} || exit 1
 elif command -v npx >/dev/null 2>&1; then
-  npx --no-install gitleash check || exit 1
+  npx --no-install gitleash ${subcommand} || exit 1
 fi
 `;
+}
 
 async function hooksDir(root: string): Promise<string> {
   const { stdout } = await execa("git", ["rev-parse", "--git-path", "hooks"], { cwd: root });
@@ -20,50 +23,72 @@ async function hooksDir(root: string): Promise<string> {
 }
 
 /**
- * Install the pre-commit hook. If a hook already exists, append our block so we
- * coexist (idempotent — re-running does not duplicate it).
- * Returns the hook path and whether we appended to an existing hook.
+ * Write a managed hook. If a hook already exists, append our block so we
+ * coexist (idempotent). Returns the path and whether we appended.
  */
-export async function installHook(
+async function writeManagedHook(
   root: string,
+  hookName: string,
+  subcommand: string,
 ): Promise<{ path: string; appended: boolean }> {
   const dir = await hooksDir(root);
   await mkdir(dir, { recursive: true });
-  const path = join(dir, "pre-commit");
+  const path = join(dir, hookName);
+  const block = hookBlock(subcommand);
 
   if (!existsSync(path)) {
-    await writeFile(path, `#!/bin/sh\n${HOOK_BLOCK}`);
+    await writeFile(path, `#!/bin/sh\n${block}`);
     await chmod(path, 0o755);
     return { path, appended: false };
   }
-
   const current = await readFile(path, "utf8");
-  if (current.includes(MARKER)) return { path, appended: true }; // already installed
-  await writeFile(path, current.replace(/\n?$/, "\n") + "\n" + HOOK_BLOCK);
+  if (current.includes(MARKER)) return { path, appended: true };
+  await writeFile(path, current.replace(/\n?$/, "\n") + "\n" + block);
   await chmod(path, 0o755);
   return { path, appended: true };
 }
 
-/** Remove our managed block (or the whole file if we own it entirely). */
-export async function uninstallHook(root: string): Promise<boolean> {
-  const dir = await hooksDir(root);
-  const path = join(dir, "pre-commit");
+async function removeManagedHook(root: string, hookName: string): Promise<boolean> {
+  const path = join(await hooksDir(root), hookName);
   if (!existsSync(path)) return false;
   const current = await readFile(path, "utf8");
   if (!current.includes(MARKER)) return false;
 
-  if (current.trimStart().startsWith("#!/bin/sh") && current.includes(MARKER)) {
-    const before = current.split(MARKER)[0].trim();
-    // If nothing meaningful remains besides the shebang, delete the file.
-    if (before === "#!/bin/sh" || before === "") {
-      await rm(path);
-      return true;
-    }
+  const before = current.slice(0, current.indexOf(MARKER)).trim();
+  if (before === "#!/bin/sh" || before === "") {
+    await rm(path); // we owned the whole file
+    return true;
   }
-  // Strip our appended block only.
-  const stripped = current.slice(0, current.indexOf(MARKER)).replace(/\n+$/, "\n");
-  await writeFile(path, stripped);
+  await writeFile(path, current.slice(0, current.indexOf(MARKER)).replace(/\n+$/, "\n"));
   return true;
+}
+
+/** Install the pre-commit hook (runs `gitleash check`). */
+export function installHook(root: string) {
+  return writeManagedHook(root, "pre-commit", "check");
+}
+
+/** Install the pre-push hook (runs `gitleash pre-push`). */
+export function installPushHook(root: string) {
+  return writeManagedHook(root, "pre-push", "pre-push");
+}
+
+/** Install both managed hooks. */
+export async function installAll(root: string): Promise<string[]> {
+  const commit = await installHook(root);
+  const push = await installPushHook(root);
+  return [commit.path, push.path];
+}
+
+export function uninstallHook(root: string) {
+  return removeManagedHook(root, "pre-commit");
+}
+
+/** Remove both managed hooks. Returns true if either was present. */
+export async function uninstallAll(root: string): Promise<boolean> {
+  const a = await removeManagedHook(root, "pre-commit");
+  const b = await removeManagedHook(root, "pre-push");
+  return a || b;
 }
 
 export function isInstalled(root: string): Promise<boolean> {

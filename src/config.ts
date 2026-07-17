@@ -11,6 +11,7 @@ export const DEFAULT_CONFIG: Config = {
   warnLockfileDrift: true,
   protectedBranches: ["main", "master"],
   disabledRules: [],
+  ruleSeverity: {},
 };
 
 /** Merge a partial user config over the defaults. Unknown keys are ignored. */

@@ -32,6 +32,8 @@ export type Config = {
   protectedBranches: string[];
   /** Rule ids to skip entirely. */
   disabledRules: string[];
+  /** Override a rule's severity, e.g. { "protect-ci": "warn" }. */
+  ruleSeverity: Partial<Record<string, Severity>>;
 };
 
 export type DiffContext = {

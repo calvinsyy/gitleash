@@ -1,7 +1,14 @@
 import type { Finding } from "./types.js";
 
-/** Render findings as a human-readable report. Empty string when there are none. */
-export function formatReport(findings: Finding[]): string {
+/**
+ * Render findings as a human-readable report. Empty string when there are none.
+ * `action`/`command` tailor the block footer to the context (commit vs push).
+ */
+export function formatReport(
+  findings: Finding[],
+  action = "Commit",
+  command = "commit",
+): string {
   if (findings.length === 0) return "";
 
   const blocks = findings.filter((f) => f.severity === "block");
@@ -19,8 +26,8 @@ export function formatReport(findings: Finding[]): string {
   }
   if (blocks.length > 0) {
     lines.push("");
-    lines.push("Commit blocked. If this is intentional, override with:");
-    lines.push("  GITLEASH_OK=1 git commit ...      (or: git commit --no-verify)");
+    lines.push(`${action} blocked. If this is intentional, override with:`);
+    lines.push(`  GITLEASH_OK=1 git ${command} ...      (or: git ${command} --no-verify)`);
   }
   return lines.join("\n");
 }

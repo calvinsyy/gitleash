@@ -17,6 +17,13 @@ describe("formatReport", () => {
     expect(out).toMatch(/GITLEASH_OK=1|--no-verify/);
   });
 
+  it("tailors the footer to a push context", () => {
+    const out = formatReport([block], "Push", "push");
+    expect(out).toContain("Push blocked");
+    expect(out).toContain("git push");
+    expect(out).not.toContain("git commit");
+  });
+
   it("shows warnings without an override footer when nothing blocks", () => {
     const out = formatReport([warn]);
     expect(out).toContain("lockfile-drift");

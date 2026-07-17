@@ -21,22 +21,28 @@ const CI_FILES = new Set([
   "bitbucket-pipelines.yml",
 ]);
 
-const LOCKFILES = /(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|npm-shrinkwrap\.json)$/;
+const LOCKFILES = /(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|npm-shrinkwrap\.json|Cargo\.lock|poetry\.lock|composer\.lock|Gemfile\.lock|go\.sum)$/;
 const MANIFEST = /(^|\/)package\.json$/;
+// Auto-generated / vendored output that shouldn't count toward a "big diff".
+const GENERATED = /(^|\/)(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|npm-shrinkwrap\.json|Cargo\.lock|poetry\.lock|composer\.lock|Gemfile\.lock|go\.sum)$|\.(min\.js|min\.css|map|lock)$|(^|\/)(dist|build|vendor)\//;
 
 const SECRET_PATTERNS: { name: string; re: RegExp }[] = [
   { name: "AWS access key", re: /AKIA[0-9A-Z]{16}/ },
   { name: "private key", re: /-----BEGIN [A-Z ]*PRIVATE KEY-----/ },
-  { name: "GitHub token", re: /ghp_[A-Za-z0-9]{36}/ },
+  { name: "GitHub token", re: /gh[pousr]_[A-Za-z0-9]{36,}/ },
   { name: "OpenAI-style key", re: /sk-[A-Za-z0-9]{20,}/ },
+  { name: "Slack token", re: /xox[baprs]-[A-Za-z0-9-]{10,}/ },
+  { name: "Google API key", re: /AIza[0-9A-Za-z_\-]{35}/ },
+  { name: "Stripe secret key", re: /sk_live_[A-Za-z0-9]{20,}/ },
   {
     name: "hardcoded credential",
-    re: /(api[_-]?key|secret|token|password)["']?\s*[:=]\s*["'][A-Za-z0-9_\-]{16,}["']/i,
+    re: /(api[_-]?key|secret|token|password|passwd)["']?\s*[:=]\s*["'][A-Za-z0-9_\-]{16,}["']/i,
   },
 ];
 
 const isTest = (p: string) => TEST_PATTERNS.some((re) => re.test(p));
 const isCi = (p: string) => CI_PREFIXES.some((pre) => p.startsWith(pre)) || CI_FILES.has(p);
+const isGenerated = (p: string) => GENERATED.test(p);
 const addedLines = (patch: string) =>
   patch.split("\n").filter((l) => l.startsWith("+") && !l.startsWith("+++"));
 
@@ -44,9 +50,12 @@ const addedLines = (patch: string) =>
 
 const bigDiff: Rule = {
   id: "big-diff",
-  run: ({ files, additions, deletions, config }) => {
+  run: ({ files, config }) => {
     const out: Finding[] = [];
-    const total = additions + deletions;
+    // Auto-generated files (lockfiles, bundles) don't reflect agent intent, so
+    // exclude them from the size the reviewer is actually asked to vet.
+    const counted = files.filter((x) => !isGenerated(x.path));
+    const total = counted.reduce((n, x) => n + x.additions + x.deletions, 0);
     if (total > config.maxLines) {
       out.push({
         rule: "big-diff",
@@ -54,11 +63,11 @@ const bigDiff: Rule = {
         message: `This commit changes ${total} lines (limit ${config.maxLines}). An agent that rewrites this much at once is hard to review — split it or override.`,
       });
     }
-    if (files.length > config.maxFiles) {
+    if (counted.length > config.maxFiles) {
       out.push({
         rule: "big-diff",
         severity: "block",
-        message: `This commit touches ${files.length} files (limit ${config.maxFiles}). Consider committing in smaller, reviewable chunks.`,
+        message: `This commit touches ${counted.length} files (limit ${config.maxFiles}). Consider committing in smaller, reviewable chunks.`,
       });
     }
     return out;
@@ -154,10 +163,16 @@ export const RULES: Rule[] = [
   protectedBranch,
 ];
 
-/** Run every enabled rule and return all findings. */
+/** Run every enabled rule, apply any severity overrides, and return findings. */
 export function runRules(ctx: DiffContext): Finding[] {
   const disabled = new Set(ctx.config.disabledRules);
-  return RULES.filter((r) => !disabled.has(r.id)).flatMap((r) => r.run(ctx));
+  const override = ctx.config.ruleSeverity ?? {};
+  return RULES.filter((r) => !disabled.has(r.id))
+    .flatMap((r) => r.run(ctx))
+    .map((finding) => {
+      const sev = override[finding.rule];
+      return sev ? { ...finding, severity: sev } : finding;
+    });
 }
 
 export type { Rule, DiffFile };

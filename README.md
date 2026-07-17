@@ -2,8 +2,9 @@
 
 **Keep your AI coding agent on a leash.** A zero-config git guardrail that stops
 reckless agent commits — huge diffs, deleted tests, hardcoded secrets, CI edits —
-*before they land*. Works with Claude Code, Cursor, aider, Codex, or a human on a
-bad day. It's just a git hook, so it fires no matter who (or what) made the change.
+and force-pushes to `main` *before they land*. Works with Claude Code, Cursor,
+aider, Codex, or a human on a bad day. It's just a git hook, so it fires no matter
+who (or what) made the change.
 
 ![gitleash blocking a reckless commit](docs/demo.svg)
 
@@ -22,7 +23,7 @@ silently; every block is one env var away from an override.
 ```bash
 npm i -g gitleash        # or: npm i -D gitleash
 cd your-repo
-gitleash install         # writes a pre-commit hook (once per repo)
+gitleash install         # writes pre-commit + pre-push hooks (once per repo)
 ```
 
 That's it. The next time an agent tries a reckless commit, it gets stopped:
@@ -48,8 +49,12 @@ Commit blocked. If this is intentional, override with:
 | `secrets` | block | staged content matches a secret pattern (AWS/GitHub/OpenAI keys, private keys, hardcoded credentials) |
 | `lockfile-drift` | warn | a lockfile changes without its `package.json` |
 | `protected-branch` | warn | you commit directly to `main` / `master` |
+| `force-push` | block | a force-push (history rewrite) to a protected branch — via the pre-push hook |
+| `protected-branch-push` | block | deleting a protected branch — via the pre-push hook |
 
-Blocks stop the commit; warnings just print. Every threshold is configurable.
+Blocks stop the commit (or push); warnings just print. Auto-generated files
+(lockfiles, bundles, `dist/`) don't count toward `big-diff`. Every threshold and
+severity is configurable.
 
 ## Configuration
 
@@ -65,26 +70,40 @@ Zero config works out of the box. To tune, run `gitleash init` and edit
   "scanSecrets": true,
   "warnLockfileDrift": true,
   "protectedBranches": ["main", "master"],
-  "disabledRules": []
+  "disabledRules": [],
+  "ruleSeverity": { "protect-ci": "warn" }
 }
 ```
+
+`disabledRules` turns rules off entirely; `ruleSeverity` re-grades a rule
+(e.g. downgrade `protect-ci` from `block` to `warn`) instead of disabling it.
 
 ## Commands
 
 | Command | What it does |
 | --- | --- |
-| `gitleash install` | Install the pre-commit hook (coexists with existing hooks) |
-| `gitleash check` | Check the staged diff — what the hook runs |
+| `gitleash install` | Install the pre-commit + pre-push hooks (coexists with existing hooks) |
+| `gitleash check` | Check the staged diff — what the pre-commit hook runs |
 | `gitleash check --range main..HEAD` | Check a commit range instead (handy in CI) |
+| `gitleash check --json` | Emit findings as JSON (for CI dashboards) |
 | `gitleash init` | Write a `.gitleash.json` you can tune |
-| `gitleash uninstall` | Remove the hook |
+| `gitleash uninstall` | Remove the hooks |
+
+### Use in CI
+
+```yaml
+# .github/workflows/gitleash.yml
+- run: npx gitleash check --range origin/main...HEAD
+```
 
 ## How it works
 
-`gitleash install` writes a `pre-commit` hook that runs `gitleash check`. On each
-commit, `gitleash` reads the **staged** diff (`git diff --cached`), runs the rules,
-and exits non-zero if anything blocks — which aborts the commit. If a hook already
-exists, gitleash appends its block so the two coexist.
+`gitleash install` writes a `pre-commit` hook (runs `gitleash check`) and a
+`pre-push` hook (runs `gitleash pre-push`). On commit, `gitleash` reads the
+**staged** diff (`git diff --cached`), runs the rules, and exits non-zero if
+anything blocks — which aborts the commit. On push, it inspects the refs git
+feeds the hook and blocks force-pushes / deletions of protected branches. If a
+hook already exists, gitleash appends its block so the two coexist.
 
 It never phones home, never uploads your code, and adds no runtime dependency to
 your project beyond `git` itself.
