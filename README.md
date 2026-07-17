@@ -117,6 +117,17 @@ GITLEASH_OK=1 git commit -m "..."   # gitleash allows it and notes the override
 git commit --no-verify -m "..."     # skips all git hooks entirely
 ```
 
+## Origin story
+
+The very first time I pushed gitleash to GitHub, the push was **rejected** —
+GitHub's own secret scanner found two "API keys" in the test fixtures and blocked
+me. They were fake, of course, but real-looking enough to trip the scanner.
+
+Which is exactly the point. A check that catches secrets — and huge diffs, deleted
+tests, force-pushes — is something you want *on your own machine, before the push*,
+for every rule, not only for secrets and not only when a server happens to notice.
+`gitleash` is that check: local, zero-config, firing on every commit and push.
+
 ## Requirements
 
 - Node ≥ 18
