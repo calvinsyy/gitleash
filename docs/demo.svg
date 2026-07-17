@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 500" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+  <style>
+    .bg    { fill: #0d1117; }
+    .chrome{ fill: #161b22; }
+    .txt   { fill: #c9d1d9; font-size: 15px; }
+    .dim   { fill: #6e7681; font-size: 14px; }
+    .prompt{ fill: #58a6ff; font-size: 15px; }
+    .block { fill: #f85149; font-size: 15px; }
+    .ok    { fill: #3fb950; font-size: 15px; }
+    .warn  { fill: #d29922; font-size: 15px; }
+
+    /* Scene 1 (reckless commit blocked) fades out; Scene 2 (override) fades in. */
+    /* Scene 1 (reckless commit blocked) holds, then cross-fades to Scene 2
+       (override). Resting state (0%/100%) shows Scene 1 in full, so the demo
+       still reads correctly even where CSS animation doesn't run. */
+    @keyframes s1 { 0%,52% { opacity:1 } 58%,94% { opacity:0 } 100% { opacity:1 } }
+    @keyframes s2 { 0%,52% { opacity:0 } 58%,94% { opacity:1 } 100% { opacity:0 } }
+    .scene1 { animation: s1 9s infinite; }
+    .scene2 { animation: s2 9s infinite; }
+  </style>
+
+  <!-- window -->
+  <rect class="bg" x="0" y="0" width="820" height="500" rx="8"/>
+  <rect class="chrome" x="0" y="0" width="820" height="34" rx="8"/>
+  <rect class="chrome" x="0" y="20" width="820" height="14"/>
+  <circle cx="22" cy="17" r="6" fill="#f85149"/>
+  <circle cx="44" cy="17" r="6" fill="#d29922"/>
+  <circle cx="66" cy="17" r="6" fill="#3fb950"/>
+  <text class="dim" x="410" y="22" text-anchor="middle" font-size="13">agent-repo — zsh</text>
+
+  <!-- SCENE 1: reckless commit blocked -->
+  <g class="scene1">
+    <text class="txt" x="24" y="70"><tspan class="prompt">$</tspan> git commit -m "cleanup"</text>
+    <text class="dim" x="24" y="96">the agent deleted a test and hardcoded an API key</text>
+
+    <text class="block" x="24" y="140">gitleash — 2 blocking issues, 0 warnings</text>
+
+    <g>
+      <text class="block" x="40" y="176">✖ protect-tests</text>
+      <text class="txt"   x="200" y="176">Test file deleted: app.test.ts</text>
+    </g>
+    <g>
+      <text class="block" x="40" y="204">✖ secrets</text>
+      <text class="txt"   x="200" y="204">Possible AWS access key in the diff</text>
+    </g>
+
+    <text class="txt" x="24" y="252">Commit <tspan class="block">blocked</tspan>. Override with:</text>
+    <text class="warn" x="40" y="278">GITLEASH_OK=1 git commit ...   (or: git commit --no-verify)</text>
+  </g>
+
+  <!-- SCENE 2: conscious override -->
+  <g class="scene2">
+    <text class="txt" x="24" y="70"><tspan class="prompt">$</tspan> GITLEASH_OK=1 git commit -m "cleanup (reviewed)"</text>
+    <text class="dim"  x="24" y="100">you looked, it's fine, you consciously override</text>
+    <text class="warn" x="24" y="142">(GITLEASH_OK set — allowing the commit anyway.)</text>
+    <text class="ok"   x="24" y="176">[feature 70852a0] cleanup (reviewed)</text>
+    <text class="dim"  x="24" y="202">nothing lands by accident — only on purpose</text>
+  </g>
+
+  <!-- footer tagline -->
+  <text class="dim" x="24" y="470" font-size="14">gitleash · keep your AI coding agent on a leash</text>
+</svg>
