@@ -1,5 +1,9 @@
 # gitleash
 
+[![CI](https://github.com/calvinsyy/gitleash/actions/workflows/ci.yml/badge.svg)](https://github.com/calvinsyy/gitleash/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/gitleash.svg)](https://www.npmjs.com/package/gitleash)
+[![license](https://img.shields.io/npm/l/gitleash.svg)](./LICENSE)
+
 **Keep your AI coding agent on a leash.** A zero-config git guardrail that stops
 reckless agent commits — huge diffs, deleted tests, hardcoded secrets, CI edits —
 and force-pushes to `main` *before they land*. Works with Claude Code, Cursor,
