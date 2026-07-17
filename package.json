@@ -1,0 +1,28 @@
+{
+  "name": "gitleash",
+  "version": "0.1.0",
+  "description": "A zero-config git guardrail that stops reckless AI-agent commits before they land.",
+  "type": "module",
+  "bin": { "gitleash": "dist/cli.js" },
+  "files": ["dist"],
+  "engines": { "node": ">=18" },
+  "keywords": ["ai", "agent", "git", "hook", "pre-commit", "guardrail", "safety", "claude-code", "cursor", "aider", "codex"],
+  "license": "MIT",
+  "scripts": {
+    "build": "tsup src/cli.ts --format esm --clean",
+    "dev": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "dependencies": {
+    "execa": "^8.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "tsup": "^8.0.2",
+    "tsx": "^4.7.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}
