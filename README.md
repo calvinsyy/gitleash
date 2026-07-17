@@ -147,6 +147,10 @@ for every rule, not only for secrets and not only when a server happens to notic
 - Node ≥ 18
 - `git` on your PATH
 
+## Changelog
+
+See [CHANGELOG.md](./CHANGELOG.md).
+
 ## License
 
 MIT
